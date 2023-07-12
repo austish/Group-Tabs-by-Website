@@ -59,3 +59,5 @@ ungroupBtn.addEventListener("click", async () => {
         }
     });
 });
+
+// https://www.google.com/s2/favicons?domain=stackoverflow.com&sz=128
