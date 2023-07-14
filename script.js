@@ -34,6 +34,7 @@ chrome.action.onClicked.addListener(async (tab) => {
         }
         // group tabs
         for (const [key, tabIds] of hostMap.entries()) {
+            // create group
             const group = await chrome.tabs.group({ tabIds });
             await chrome.tabGroups.update(group, { title: key });
         }
@@ -53,7 +54,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
         await chrome.tabs.get(tabId, function(tab) {
             const domain = getTabDomain(tab);
-            addTabToGroup(domain, tab.id);            
+            addTabToGroup(domain, tab);            
         }); 
     }
 });
@@ -78,17 +79,17 @@ function getTabDomain(tab) {
     return domain;
 }
   
-async function addTabToGroup(groupName, tabId) {
+async function addTabToGroup(groupName, tab) {
     // Check if a group with this name already exists
-    chrome.tabGroups.query({title: groupName}, function(groups) {
+    await chrome.tabGroups.query({title: groupName}, function(groups) {
+        // add to existing group
         if (groups.length > 0) {
-            // add tab to existing group
-            var groupId = groups[0].id;  
-            chrome.tabGroups.update(tabId, {groupId: groupId});
+            var groupId = groups[0].id;
+            chrome.tabs.group({ tabIds: tab.id, groupId: groupId });
+        // add to new group
         } else {
-            // add tab to new group  
-            const group = chrome.tabs.group({ tabId });
-            chrome.tabGroups.update(group, { title: groupName });
+            const group = chrome.tabs.group({ tabIds: tab.id });
+            // chrome.tabGroups.update(group.id, { title: groupName });
         }
     });
 } 
