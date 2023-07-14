@@ -86,10 +86,10 @@ async function addTabToGroup(groupName, tab) {
         if (groups.length > 0) {
             var groupId = groups[0].id;
             chrome.tabs.group({ tabIds: tab.id, groupId: groupId });
-        // add to new group
-        } else {
-            const group = chrome.tabs.group({ tabIds: tab.id });
-            // chrome.tabGroups.update(group.id, { title: groupName });
+            return;
         }
     });
+    // add to new group
+    const group = await chrome.tabs.group({ tabIds: tab.id });
+    await chrome.tabGroups.update(group, { title: groupName });
 } 
