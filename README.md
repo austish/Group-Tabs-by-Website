@@ -1,5 +1,4 @@
-# Tabs-Manager
+# Group Tabs by Website
+Chrome extension that automatically organizes tabs into groups according to their website.
 
-- Todo:
-  - update groups whenever new site opens
 <br><br> 

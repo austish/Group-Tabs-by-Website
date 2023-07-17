@@ -10,16 +10,15 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // when clicking on extension icon
 chrome.action.onClicked.addListener(async (tab) => {
-    // check if extension is 'ON' or 'OFF'
+    // update state
     const prevState = currentState;
-    // Next state will always be the opposite
     currentState = prevState === 'ON' ? 'OFF' : 'ON'
 
     //get tabs
     const tabs = await chrome.tabs.query({});
     // set action badge
     for (const tab of tabs) {
-        chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
+        await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
     }
 
     if (currentState === "ON") {
@@ -80,7 +79,7 @@ function getTabDomain(tab) {
 }
   
 async function addTabToGroup(groupName, tab) {
-    // Check if a group with this name already exists
+    // check if a group with this name already exists
     await chrome.tabGroups.query({title: groupName}, function(groups) {
         // add to existing group
         if (groups.length > 0) {
