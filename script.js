@@ -71,7 +71,7 @@ function getTabDomain(tab) {
             domain = domain.replace('www.', '');
         }
         // remove domain extensions
-        if (domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.gov')) {
+        if (domain[domain.length - 4] == '.') {
             domain = domain.slice(0, -4);
         }
     }
