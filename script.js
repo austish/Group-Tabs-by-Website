@@ -13,7 +13,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     // update state
     const prevState = currentState;
     currentState = prevState === 'ON' ? 'OFF' : 'ON'
-
     //get tabs
     const tabs = await chrome.tabs.query({});
     // set action badge
@@ -48,13 +47,11 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 // add new tabs to groups
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async(tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && currentState == 'ON') {
         await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
-        // await chrome.tabs.get(tabId, function(tab) {
         const domain = getTabDomain(tab);
-        addTabToGroup(domain, tab);            
-        // }); 
+        addTabToGroup(domain, tab);
     }
 });
 
@@ -87,7 +84,7 @@ async function addTabToGroup(domain, tab) {
             return false;
         }
         // add tab to existing group
-        chrome.tabs.group({ tabIds: tab.id, groupId: groupId[0].id });
+        chrome.tabs.group({ tabIds: tab.id, groupId: groups[0].id });
         return true;
     } else {
         // add to new group
