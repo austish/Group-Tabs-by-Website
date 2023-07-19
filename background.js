@@ -43,11 +43,9 @@ chrome.action.onClicked.addListener(async (tab) => {
         }
     // ungroup tabs
     } else if (currentState === "OFF") {
-        chrome.tabs.query({}, tabs => {
-            for (const tab of tabs) {
-                chrome.tabs.ungroup(tab.id);
-            }
-        });
+        for (const tab of tabs) {
+            chrome.tabs.ungroup(tab.id);
+        }
     }
 });
 
@@ -55,8 +53,6 @@ chrome.action.onClicked.addListener(async (tab) => {
 function getTabDomain(tab) {
     let domain = ''
     if (typeof tab !== 'undefined') {
-        // get tab title
-        const title = tab.title.split("-")[0].trim();
         // get tab domain hostname
         domain = new URL(tab.url);
         domain = domain.hostname;
@@ -93,10 +89,13 @@ async function groupTab(domain, tab) {
 }
 
 // retrieve messages from content script
-chrome.runtime.onMessage.addListener(
-    function(request) {
-        // if extension is on
-        if (currentState === 'ON') {
+chrome.runtime.onMessage.addListener(async() => {
+        // check if extension is on
+        const tabs = await chrome.tabs.query({});
+        const state = await chrome.action.getBadgeText({ tabId: tabs[0].id });
+        console.log(state);
+        if (state == 'ON') {
+            // group tab
             chrome.tabs.query({ active: true, currentWindow: true }, async(tabs) => {
                 await chrome.action.setBadgeText({ tabId: tabs[0].id, text: 'ON' });
                 const domain = getTabDomain(tabs[0]);
