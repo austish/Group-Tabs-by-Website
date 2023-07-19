@@ -36,6 +36,7 @@ chrome.action.onClicked.addListener(async (tab) => {
             if (key != 'newtab') {
                 const group = await chrome.tabs.group({ tabIds });
                 await chrome.tabGroups.update(group, { title: key });
+            // move new tabs to far right
             } else {
                 chrome.tabs.move(tabIds, { index: -1 });
             }
@@ -50,6 +51,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 });
 
+// get tab's domain name
 function getTabDomain(tab) {
     let domain = ''
     if (typeof tab !== 'undefined') {
@@ -69,7 +71,8 @@ function getTabDomain(tab) {
     }
     return domain;
 }
- 
+
+// add tab to domain group
 async function groupTab(domain, tab) {
     // check for group
     const groups = await chrome.tabGroups.query({title: domain});
@@ -89,35 +92,15 @@ async function groupTab(domain, tab) {
     }
 }
 
-// check if extension badge text is set to 'ON'
-async function isExtensionOn() {
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-        var state = await chrome.action.getBadgeText({ tabId: tab.id });
-        // console.log(state);
-        // console.log(tab);
-        if (state === 'ON') {
-            return true;
-        }
-    }
-    return false;
-}
-
 // retrieve messages from content script
 chrome.runtime.onMessage.addListener(
     function(request) {
-        if (request === "new_site") {
-            // use .then to capture promise
-            let state = isExtensionOn();
-            state.then(function(result) {
-                // if extension is on
-                if (result) {
-                    chrome.tabs.query({ active: true, currentWindow: true }, async(tabs) => {
-                        await chrome.action.setBadgeText({ tabId: tabs[0].id, text: 'ON' });
-                        const domain = getTabDomain(tabs[0]);
-                        groupTab(domain, tabs[0]);
-                    });
-                }
+        // if extension is on
+        if (currentState === 'ON') {
+            chrome.tabs.query({ active: true, currentWindow: true }, async(tabs) => {
+                await chrome.action.setBadgeText({ tabId: tabs[0].id, text: 'ON' });
+                const domain = getTabDomain(tabs[0]);
+                groupTab(domain, tabs[0]);
             });
         }
     }

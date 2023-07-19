@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Group Tabs by Website",
+  "description": "Organize your tabs by website to increase productivity.",
   "version": "0.0.1",
   "icons": {
     "16": "images/icon-16.png",
@@ -15,7 +16,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["script.js"],
-      "run_at": "document_end"
+      "run_at": "document_start"
     }
   ],
   "action": {
