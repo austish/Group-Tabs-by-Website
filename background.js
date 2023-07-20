@@ -12,6 +12,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     if (currentState === "ON") {
         var domainTabs = {};
         for (const tab of tabs) {
+            await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
             domain = getTabDomain(tab);
             if (!(domain in domainTabs)) {
                 domainTabs[domain] = new Array();
@@ -25,6 +26,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     // ungroup
     } else {
         for (const tab of tabs) {
+            await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
             await chrome.tabs.ungroup(tab.id);
         }
     }
