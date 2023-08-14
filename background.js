@@ -1,15 +1,15 @@
-// extension on or off
-let currentState = 'OFF'
-
 // when clicking on extension icon
 chrome.action.onClicked.addListener(async (tab) => {
-    // update state
-    const prevState = currentState;
-    currentState = prevState === 'ON' ? 'OFF' : 'ON'
-    //get tabs
+    // check if extension is on or off
     const tabs = await chrome.tabs.query({});
+    badgeText = await chrome.action.getBadgeText({ tabId: tabs[0].id });
+    if (!badgeText || badgeText == 'OFF') {
+        currentState = 'ON'
+    } else {
+        currentState = 'OFF'
+    }
     // group
-    if (currentState === "ON") {
+    if (currentState == 'ON') {
         var domainTabs = {};
         for (const tab of tabs) {
             await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
@@ -20,8 +20,11 @@ chrome.action.onClicked.addListener(async (tab) => {
             domainTabs[domain].push(tab.id);
         }
         for (const [key, tabIds] of Object.entries(domainTabs)) {
-            const group = await chrome.tabs.group({ tabIds });
-            await chrome.tabGroups.update(group, { title: key });
+            if (tabIds.length > 1) {
+                const group = await chrome.tabs.group({ tabIds });
+                await chrome.tabGroups.update(group, { title: key });
+                await chrome.tabGroups.move(group, { index: 0 })
+            }
         }
     // ungroup
     } else {
@@ -32,28 +35,17 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 });
 
-// add new tabs to groups while background.js is active
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (currentState == 'ON' && changeInfo.status === "loading") {
-        await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
-        await chrome.tabs.get(tabId, function(tab) {
-            const domain = getTabDomain(tab);
-            groupTab(domain, tab);
-        }); 
-    }
-});
-
 // retrieve messages from content script
 chrome.runtime.onMessage.addListener(async() => {
-    const tabs = await chrome.tabs.query({});
+    const tabs = await chrome.tabs.query({ index: 0 });
     const badge = await chrome.action.getBadgeText({ tabId: tabs[0].id });
     // check if badge text is 'ON'
     if (badge == 'ON') {
         // group tab
-        chrome.tabs.query({ active: true, currentWindow: true }, async(tabs) => {
-            await chrome.action.setBadgeText({ tabId: tabs[0].id, text: 'ON' });
-            const domain = getTabDomain(tabs[0]);
-            groupTab(domain, tabs[0]);
+        chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
+            await chrome.action.setBadgeText({ tabId: currentTab[0].id, text: 'ON' });
+            const domain = getTabDomain(currentTab[0]);
+            groupTab(domain, currentTab[0]);
         });
     }
 });
@@ -86,7 +78,6 @@ async function groupTab(domain, tab) {
     }
     // check for existing group
     const groups = await chrome.tabGroups.query({title: domain});
-    console.log(groups);
     if (groups.length > 0) {
         // check if tab is already in group
         if (tab.groupId == groups[0].id) {
@@ -97,10 +88,22 @@ async function groupTab(domain, tab) {
             return true;
         }
     } else {
-        // add to new group
-        console.log("adding to new group");
-        const group = await chrome.tabs.group({ tabIds: tab.id });
-        await chrome.tabGroups.update(group, { title: domain });
-        return true;
+        // add to new group only if domain has more than 1 tab
+        const tabs = await chrome.tabs.query({});
+        var domainTabs = {};
+        for (const tab of tabs) {
+            domain = getTabDomain(tab);
+            if (!(domain in domainTabs)) {
+                domainTabs[domain] = new Array();
+            }
+            domainTabs[domain].push(tab.id);
+        }
+        if (domainTabs[domain].length > 1) {
+            const group = await chrome.tabs.group({ tabIds: Object.values(domainTabs[domain]) });
+            await chrome.tabGroups.update(group, { title: domain });
+            await chrome.tabGroups.move(group, { index: 0 })
+            return true;
+        }
+        return false;
     }
 }
