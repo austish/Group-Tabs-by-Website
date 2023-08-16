@@ -90,19 +90,14 @@ async function groupTab(domain, tab) {
     } else {
         // add to new group only if domain has more than 1 tab
         const tabs = await chrome.tabs.query({});
-        var domainTabs = {};
-        for (const tab of tabs) {
-            domain = getTabDomain(tab);
-            if (!(domain in domainTabs)) {
-                domainTabs[domain] = new Array();
-            }
-            domainTabs[domain].push(tab.id);
-        }
-        if (domainTabs[domain].length > 1) {
-            const group = await chrome.tabs.group({ tabIds: Object.values(domainTabs[domain]) });
-            await chrome.tabGroups.update(group, { title: domain });
-            await chrome.tabGroups.move(group, { index: 0 })
-            return true;
+        for (const temp_tab of tabs) {
+            temp_domain = getTabDomain(tab);
+            if (temp_domain == domain && temp_tab.id != tab.id) {
+                const group = await chrome.tabs.group({ tabIds: tab.id });
+                await chrome.tabGroups.update(group, { title: domain });
+                await chrome.tabGroups.move(group, { index: 0 })
+                return true; 
+            } 
         }
         return false;
     }
