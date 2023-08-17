@@ -10,21 +10,8 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
     // group
     if (currentState == 'ON') {
-        var domainTabs = {};
         for (const tab of tabs) {
-            await chrome.action.setBadgeText({ tabId: tab.id, text: currentState });
-            domain = getTabDomain(tab);
-            if (!(domain in domainTabs)) {
-                domainTabs[domain] = new Array();
-            }
-            domainTabs[domain].push(tab.id);
-        }
-        for (const [key, tabIds] of Object.entries(domainTabs)) {
-            if (tabIds.length > 1) {
-                const group = await chrome.tabs.group({ tabIds });
-                await chrome.tabGroups.update(group, { title: key });
-                await chrome.tabGroups.move(group, { index: 0 })
-            }
+            groupTab(tab);
         }
     // ungroup
     } else {
@@ -43,9 +30,7 @@ chrome.runtime.onMessage.addListener(async() => {
     if (badge == 'ON') {
         // group tab
         chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
-            await chrome.action.setBadgeText({ tabId: currentTab[0].id, text: 'ON' });
-            const domain = getTabDomain(currentTab[0]);
-            groupTab(domain, currentTab[0]);
+            groupTab(currentTab[0]);
         });
     }
 });
@@ -65,20 +50,44 @@ function getTabDomain(tab) {
         if (domain[domain.length - 4] == '.') {
             domain = domain.slice(0, -4);
         }
+        const period = domain.lastIndexOf('.');
+        if (period > -1) {
+            domain = domain.slice(0, period - domain.length);
+        }
     }
     return domain;
 }
 
+// finds index at front of tabs, accounting for pinned tabs
+async function findFrontIndex() {
+    let count = 0;
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+        if (tab.pinned) {
+            count++;
+        }
+    }
+    return count;
+}
+
 // add tab to domain group
-async function groupTab(domain, tab) {
+async function groupTab(tab) {
+    await chrome.action.setBadgeText({ tabId: tab.id, text: 'ON' });
+    // check for pinned tab
+    if (tab.pinned) {
+        await chrome.action.setBadgeText({ tabId: tab.id, text: 'ON' });
+        return false;
+    }
     // check for new tab
+    const domain = getTabDomain(tab);
+    console.log(domain);
     if (domain == 'newtab') {
-        await chrome.tabs.move(tab.id, { index: -1 });
         return false;
     }
     // check for existing group
     const groups = await chrome.tabGroups.query({title: domain});
     if (groups.length > 0) {
+        console.log("check");
         // check if tab is already in group
         if (tab.groupId == groups[0].id) {
             return false;
@@ -88,16 +97,29 @@ async function groupTab(domain, tab) {
             return true;
         }
     } else {
-        // add to new group only if domain has more than 1 tab
+        // check for multiple tabs with domain
         const tabs = await chrome.tabs.query({});
+        let tabIds = [];
+        // front of non-pinned tabs index 
+        let frontIndex = 0;
         for (const temp_tab of tabs) {
-            temp_domain = getTabDomain(tab);
-            if (temp_domain == domain && temp_tab.id != tab.id) {
-                const group = await chrome.tabs.group({ tabIds: tab.id });
-                await chrome.tabGroups.update(group, { title: domain });
-                await chrome.tabGroups.move(group, { index: 0 })
-                return true; 
+            temp_domain = getTabDomain(temp_tab);
+            if (temp_tab.pinned) {
+                frontIndex++;
+            }
+            else if (temp_domain == domain) {
+                tabIds.push(temp_tab.id);
             } 
+        }
+        // create new group if more than 1 tab with same domain
+        if (tabIds.length > 1) {
+            const group = await chrome.tabs.group({ tabIds: tabIds });
+            await chrome.tabGroups.update(group, { title: domain });
+            await chrome.tabGroups.move(group, { index: frontIndex });
+            return true; 
+        // ungroup if necessary    
+        } else if (tab.groupId > 0) {
+            await chrome.tabs.ungroup(tab.id);
         }
         return false;
     }
