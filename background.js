@@ -11,7 +11,7 @@ chrome.action.onClicked.addListener(async (tab) => {
     // group
     if (currentState == 'ON') {
         for (const tab of tabs) {
-            groupTab(tab);
+            await groupTab(tab);
         }
     // ungroup
     } else {
@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener(async() => {
     if (badge == 'ON') {
         // group tab
         chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
-            groupTab(currentTab[0]);
+            await groupTab(currentTab[0]);
         });
     }
 });
@@ -80,14 +80,12 @@ async function groupTab(tab) {
     }
     // check for new tab
     const domain = getTabDomain(tab);
-    console.log(domain);
     if (domain == 'newtab') {
         return false;
     }
     // check for existing group
     const groups = await chrome.tabGroups.query({title: domain});
     if (groups.length > 0) {
-        console.log("check");
         // check if tab is already in group
         if (tab.groupId == groups[0].id) {
             return false;

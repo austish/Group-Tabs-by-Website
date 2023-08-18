@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Group Tabs by Website",
-  "description": "Organize your tabs by website domain to increase productivity.",
+  "name": "Group Tabs by Website Domain",
+  "description": "Group your tabs by website domain.",
   "version": "0.0.3",
   "icons": {
     "16": "images/icon-16.png",
