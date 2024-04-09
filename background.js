@@ -1,26 +1,26 @@
-importScripts('badgeHelpers.js');
+importScripts('stateHelpers.js');
 
 // when clicking on extension icon
 chrome.action.onClicked.addListener(async (tab) => {
     const tabs = await chrome.tabs.query({});
     // check if extension is on or off
-    badgeText = await getBadgeText();
-    if (!badgeText || badgeText == 'OFF') {
-        await setBadgeText('ON')
-        badgeText = 'ON';
+    state = await getState();
+    if (!state || state == 'OFF') {
+        await setState('ON')
+        state = 'ON';
     } else {
-        await setBadgeText('OFF')
-        badgeText = 'OFF';
+        await setState('OFF')
+        state = 'OFF';
     }
     // group
-    if (badgeText == 'ON') {
+    if (state == 'ON') {
         for (const tab of tabs) {
             await groupTab(tab);
         }
     // ungroup
     } else {
         for (const tab of tabs) {
-            await setBadgeText('OFF');
+            await setState('OFF');
             await chrome.tabs.ungroup(tab.id);
         }
     }
@@ -28,9 +28,9 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 // retrieve messages from content script
 chrome.runtime.onMessage.addListener(async() => {
-    badgeText = getBadgeText();
+    state = getState();
     // check if badge text is 'ON'
-    if (badgeText == 'ON') {
+    if (state == 'ON') {
         // group tab
         chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
             await groupTab(currentTab[0]);
@@ -40,17 +40,17 @@ chrome.runtime.onMessage.addListener(async() => {
 
 // restore badge text on browser start
 chrome.runtime.onStartup.addListener(async() => {
-    await restoreBadgeText();
+    await restoreState();
 });
 
 // tab update listener
 chrome.tabs.onUpdated.addListener(async(tabId, changeInfo, tab) => {
     if (changeInfo.status == 'complete') {
-        await restoreBadgeText();
+        await restoreState();
     }
     // group tab if necessary
-    badgeText = await getBadgeText();
-    if (badgeText == 'ON') {
+    state = await getState();
+    if (state == 'ON') {
         chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
             await groupTab(currentTab[0]);
         });
@@ -81,7 +81,7 @@ function getTabDomain(tab) {
 // add tab to domain group
 async function groupTab(tab) {
     try {
-        await setBadgeText('ON');
+        await setState('ON');
         // check for pinned tab
         if (tab.pinned) {
             return false;
