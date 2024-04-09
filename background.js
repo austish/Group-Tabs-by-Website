@@ -35,26 +35,24 @@ chrome.runtime.onMessage.addListener(async() => {
     }
 });
 
-// get tab's domain name
+// get tab's domain
 function getTabDomain(tab) {
-    let domain = ''
-    if (typeof tab !== 'undefined') {
-        // get tab domain hostname
-        domain = new URL(tab.url);
-        domain = domain.hostname;
-        // remove www.
-        if (domain.startsWith('www.')) {
-            domain = domain.replace('www.', '');
-        }
-        // remove domain extensions
-        if (domain[domain.length - 4] == '.') {
-            domain = domain.slice(0, -4);
-        }
-        const period = domain.lastIndexOf('.');
-        if (period > -1) {
-            domain = domain.slice(0, period - domain.length);
-        }
+    var url = new URL(tab.url);
+    var hostname = url.hostname;
+
+    // split the hostname into parts
+    var parts = hostname.split('.');
+    // remove subdomain if present
+    if (parts.length > 2) {
+        // Remove the subdomain
+        parts.shift();
     }
+    // remove  top level domain (TLD) if present
+    if (parts.length > 1) {
+        parts.pop();
+    }
+    // complete domain
+    var domain = parts.join('.');
     return domain;
 }
 
