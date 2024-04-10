@@ -1,6 +1,6 @@
 importScripts('stateHelpers.js');
 
-// when clicking on extension icon
+// click on extension listener
 chrome.action.onClicked.addListener(async (tab) => {
     const tabs = await chrome.tabs.query({});
     // check if extension is on or off
@@ -26,22 +26,6 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
 });
 
-// retrieve messages from content script
-chrome.runtime.onMessage.addListener(async(request) => {
-    if (request.message == "newSite") {
-        console.log("Message 'newSite' received");
-        state = await getState();
-        // check if badge text is 'ON'
-        if (state == 'ON') {
-            // group tab
-            await chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
-                console.log(currentTab[0])
-                await groupTab(currentTab[0]);
-            });
-        }
-    }
-});
-
 // restore badge text on browser start
 chrome.runtime.onStartup.addListener(async() => {
     await restoreState();
@@ -49,48 +33,35 @@ chrome.runtime.onStartup.addListener(async() => {
 
 // tab update listener
 chrome.tabs.onUpdated.addListener(async(tabId, changeInfo, tab) => {
-    if (changeInfo.status == 'complete') {
+    // refresh
+    if (changeInfo.status === 'loading' && changeInfo.url === undefined) {
         await restoreState();
     }
-    console.log("Update listener triggered");
-    // group tab if necessary
-    // state = await getState();
-    // if (state == 'ON') {
-    //     chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
-    //         await groupTab(currentTab[0]);
-    //     });
-    // }
+    // new site
+    if (changeInfo.url) {
+        state = await getState();
+        // group if necessary
+        if (state == 'ON') {
+            await groupTab(tab);
+        }
+    }
 });
-
-// // tab created listener
-// chrome.tabs.onCreated.addListener(async(tab) => {
-//     await restoreState();
-//     // group tab if necessary
-//     state = await getState();
-//     if (state == 'ON') {
-//         chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
-//             await groupTab(currentTab[0]);
-//         });
-//     }
-// });
 
 // get tab's domain
 function getTabDomain(tab) {
     var url = new URL(tab.url);
     var hostname = url.hostname;
-
-    // split the hostname into parts
+    // remove subdomain and top level domain (TLD) if present
     var parts = hostname.split('.');
-    // remove subdomain if present
-    if (parts.length > 2) {
-        // Remove the subdomain
+    // subdomain
+    if (parts.length > 2) { 
         parts.shift();
     }
-    // remove top level domain (TLD) if present
+    // TLD
     if (parts.length > 1) {
         parts.pop();
     }
-    // complete domain
+    // rejoin domain
     var domain = parts.join('.');
     return domain;
 }
@@ -99,17 +70,13 @@ function getTabDomain(tab) {
 async function groupTab(tab) {
     try {
         await setState('ON');
-        // check for pinned tab
-        if (tab.pinned) {
-            return false;
-        }
-        // check for new tab
         const domain = getTabDomain(tab);
-        if (domain == 'newtab') {
+        // check for pinned tab or new tab
+        if (tab.pinned || domain == 'newtab') {
             return false;
         }
-        // check for existing group
-        const groups = await chrome.tabGroups.query({title: domain});
+        // check for existing group within current window
+        const groups = await chrome.tabGroups.query({ windowId: tab.wndowId, title: domain});
         if (groups.length > 0) {
             // check if tab is already in group
             if (tab.groupId == groups[0].id) {
@@ -121,17 +88,16 @@ async function groupTab(tab) {
             }
         } else {
             // check for multiple tabs with domain
-            const tabs = await chrome.tabs.query({});
+            const tabs = await chrome.tabs.query({ windowId: tab.windowId });
             let tabIds = [];
-            // front of non-pinned tabs index 
+            // move group to front of non-pinned tabs
             let frontIndex = 0;
-            for (const temp_tab of tabs) {
-                temp_domain = getTabDomain(temp_tab);
-                if (temp_tab.pinned) {
+            for (const tempTab of tabs) {
+                if (tempTab.pinned) {
                     frontIndex++;
                 }
-                else if (temp_domain == domain) {
-                    tabIds.push(temp_tab.id);
+                else if (getTabDomain(tempTab) == domain) {
+                    tabIds.push(tempTab.id);
                 } 
             }
             // create new group if more than 1 tab with same domain
