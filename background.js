@@ -27,14 +27,18 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 // retrieve messages from content script
-chrome.runtime.onMessage.addListener(async() => {
-    state = getState();
-    // check if badge text is 'ON'
-    if (state == 'ON') {
-        // group tab
-        chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
-            await groupTab(currentTab[0]);
-        });
+chrome.runtime.onMessage.addListener(async(request) => {
+    if (request.message == "newSite") {
+        console.log("Message 'newSite' received");
+        state = await getState();
+        // check if badge text is 'ON'
+        if (state == 'ON') {
+            // group tab
+            await chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
+                console.log(currentTab[0])
+                await groupTab(currentTab[0]);
+            });
+        }
     }
 });
 
@@ -48,14 +52,27 @@ chrome.tabs.onUpdated.addListener(async(tabId, changeInfo, tab) => {
     if (changeInfo.status == 'complete') {
         await restoreState();
     }
+    console.log("Update listener triggered");
     // group tab if necessary
-    state = await getState();
-    if (state == 'ON') {
-        chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
-            await groupTab(currentTab[0]);
-        });
-    }
+    // state = await getState();
+    // if (state == 'ON') {
+    //     chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
+    //         await groupTab(currentTab[0]);
+    //     });
+    // }
 });
+
+// // tab created listener
+// chrome.tabs.onCreated.addListener(async(tab) => {
+//     await restoreState();
+//     // group tab if necessary
+//     state = await getState();
+//     if (state == 'ON') {
+//         chrome.tabs.query({ active: true, currentWindow: true }, async(currentTab) => {
+//             await groupTab(currentTab[0]);
+//         });
+//     }
+// });
 
 // get tab's domain
 function getTabDomain(tab) {
