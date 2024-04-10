@@ -1,4 +1,4 @@
-importScripts('stateHelpers.js');
+importScripts('./lib/stateHelpers.js');
 
 // click on extension listener
 chrome.action.onClicked.addListener(async (tab) => {
@@ -38,7 +38,7 @@ chrome.tabs.onUpdated.addListener(async(tabId, changeInfo, tab) => {
         await restoreState();
     }
     // new site
-    if (changeInfo.url) {
+    else if (changeInfo.url) {
         state = await getState();
         // group if necessary
         if (state == 'ON') {
