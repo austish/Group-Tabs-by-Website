@@ -1,5 +1,4 @@
 # <a href="https://chrome.google.com/webstore/detail/group-tabs-by-website-dom/jobmbclbhadnneabhfjhmimiaeakcopl">Group Tabs by Website</a>
-Chrome extension that automatically organizes tabs into groups according to their website domain.
 
 To Do:
 - pick tab group color from favicon
